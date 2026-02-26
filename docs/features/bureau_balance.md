@@ -1,194 +1,121 @@
-# Bureau Feature Engineering – Glossary
+# Bureau Balance Feature Engineering – Glossary
 
-All features are aggregated at the customer level:
+All features are aggregated at the loan level:
 
-> **One row per `SK_ID_CURR`**
+> **One row per `SK_ID_BUREAU`**
 
-These variables summarize the customer’s external credit exposure based on `bureau.csv`.
+These variables summarize the monthly behavioral history of each external credit account based on `bureau_balance.csv`.
 
 ---
 
-## 1. BUREAU_TOTAL_LOAN_COUNT
+## 1. BUREAU_BALANCE_RECORD_COUNT
 
 **Definition:**  
-Total number of external credit records associated with the customer.
+Total number of monthly records available for the loan.
 
 **Interpretation:**  
-Measures historical exposure to credit outside the current institution.
+Represents how many months of history are recorded for the external credit account.
 
-**Risk intuition:**
-- Very high → potential over-leverage  
-- Very low → limited credit experience  
+**Signal captured:**
+- Length of monitoring history  
+- Stability of the reporting period  
 
 ---
 
-## 2. BUREAU_ACTIVE_LOAN_COUNT
+## 2. BUREAU_BALANCE_OLDEST_MONTH
 
 **Definition:**  
-Number of currently active external credit accounts.
+Oldest recorded month in the loan history (minimum `MONTHS_BALANCE`).
+
+> `MONTHS_BALANCE` is typically negative, where 0 represents the most recent month.
 
 **Interpretation:**  
-Represents the customer's current external debt exposure.
+Indicates how far back the loan’s reporting history extends.
 
 ---
 
-## 3. BUREAU_CLOSED_LOAN_COUNT
+## 3. BUREAU_BALANCE_MOST_RECENT_MONTH
 
 **Definition:**  
-Number of external credit accounts that have been closed.
+Most recent recorded month in the loan history (maximum `MONTHS_BALANCE`).
 
 **Interpretation:**  
-Indicates historical credit relationships and completed obligations.
+Usually close to 0. Confirms recency of reporting.
 
 ---
 
-## 4. BUREAU_ACTIVE_LOAN_RATIO
+## 4. BUREAU_BALANCE_MONTH_SPAN
 
 **Definition:**  
-Proportion of active loans relative to total loans.
+Difference between the most recent and oldest recorded month.
 
 **Formula:**  
-`ACTIVE_LOAN_RATIO = Active Loans / (Active Loans + Closed Loans)`
+`MONTH_SPAN = MOST_RECENT_MONTH - OLDEST_MONTH`
 
 **Interpretation:**  
-Represents how much of the customer’s external credit history is still generating financial obligations.
+Represents the total duration of the loan’s recorded behavioral history.
+
+**Signal captured:**
+- Persistence of credit relationship  
+- Stability over time  
+
+---
+
+## 5. BUREAU_BALANCE_DPD_MAX
+
+**Definition:**  
+Maximum Days Past Due (DPD) level observed in the loan’s history.
+
+(Only numeric `STATUS` values 0–5 are considered.)
+
+**Interpretation:**  
+Measures the most severe payment delay recorded.
 
 **Risk intuition:**
-- Close to 1 → highly leveraged  
-- Close to 0 → mostly closed obligations  
+- Higher values → more severe historical payment issues  
+- Zero → no recorded delay  
 
 ---
 
-## 5. BUREAU_DAYS_CREDIT_MOST_RECENT
+## 6. BUREAU_BALANCE_DPD_RATIO
 
 **Definition:**  
-Number of days since the most recent external credit was granted.
-
-(Note: Values are negative because they represent days before the application date.)
-
-**Interpretation:**
-- Close to 0 → very recent credit activity  
-- Very negative → older credit history  
-
----
-
-## 6. BUREAU_DAYS_CREDIT_OLDEST
-
-**Definition:**  
-Number of days since the oldest external credit was granted.
-
-**Interpretation:**  
-Indicates how long the customer has been exposed to the credit system.
-
----
-
-## 7. BUREAU_DAYS_CREDIT_SPAN
-
-**Definition:**  
-Difference between the most recent and the oldest credit record.
+Proportion of months where DPD was greater than zero.
 
 **Formula:**  
-`CREDIT_SPAN = MOST_RECENT - OLDEST`
+`DPD_RATIO = Months with positive DPD / Total recorded months`
 
 **Interpretation:**  
-Represents the total length of the customer’s external credit history.
+Captures the frequency of payment delays throughout the loan’s history.
 
 **Risk intuition:**
-- Large span → experienced borrower  
-- Small span → short credit history  
+- Close to 1 → persistent payment issues  
+- Close to 0 → generally consistent payments  
 
 ---
 
-## 8. BUREAU_OVERDUE_LOAN_RATIO
+## 7. BUREAU_BALANCE_HAS_POSITIVE_DPD
 
 **Definition:**  
-Proportion of external loans that have ever had a recorded overdue amount greater than zero.
+Binary indicator showing whether the loan has ever experienced a positive DPD.
 
-**Formula:**  
-`OVERDUE_LOAN_RATIO = Loans with overdue / Total loans`
+**Rule:**  
+`HAS_POSITIVE_DPD = 1 if DPD_MAX > 0 else 0`
 
 **Interpretation:**  
-Captures historical delinquency behavior.
+Simple indicator of any historical payment delay.
 
-**Risk intuition:**
-- Close to 1 → recurrent delinquency  
-- 0 → no recorded overdue behavior  
-
----
-
-## 9. BUREAU_ACTIVE_AMT_CREDIT_SUM_DEBT_SUM
-
-**Definition:**  
-Total outstanding debt across all active external credit accounts.
-
-**Interpretation:**  
-Represents the customer’s current external debt burden.
-
----
-
-## 10. BUREAU_ACTIVE_AMT_CREDIT_SUM_SUM
-
-**Definition:**  
-Total credit amount granted across active external accounts.
-
-**Interpretation:**  
-Represents nominal active credit exposure.
-
----
-
-## 11. BUREAU_ACTIVE_DEBT_RATIO
-
-**Definition:**  
-Ratio of outstanding debt to total granted credit for active accounts.
-
-**Formula:**  
-`ACTIVE_DEBT_RATIO = Debt Sum / Credit Sum`
-
-**Interpretation:**
-- Close to 1 → credit almost fully utilized  
-- Close to 0 → low utilization  
-
-**This is one of the strongest financial risk indicators in this feature set.**
-
----
-
-## 12. BUREAU_ACTIVE_AMT_CREDIT_MAX_OVERDUE_MAX
-
-**Definition:**  
-Maximum overdue amount recorded among active external loans.
-
-**Interpretation:**  
-Measures the worst delinquency severity in currently active credit lines.
-
-**Risk intuition:**
-- High value → history of severe delinquency  
-- Zero → no significant overdue among active loans  
-
----
-
-## 13. BUREAU_RECENT_1Y_LOAN_COUNT
-
-**Definition:**  
-Number of external credit accounts opened within the last 12 months.
-
-(Criteria: `DAYS_CREDIT > -365`)
-
-**Interpretation:**  
-Measures recent credit-seeking behavior.
-
-**Risk intuition:**
-- High → recent increase in leverage  
-- Zero → stable borrowing behavior  
+**Signal captured:**
+- Existence of payment issues (regardless of severity)
 
 ---
 
 # Structural Summary
 
-These features capture four fundamental dimensions of external credit risk:
+These features capture three fundamental behavioral dimensions of each external loan:
 
-1. **Credit Volume**
-2. **Recency**
-3. **Behavioral Delinquency**
-4. **Current Leverage**
+1. **History Length** – duration and persistence of reporting  
+2. **Severity of Delay** – maximum DPD observed  
+3. **Frequency of Delay** – proportion of months with payment issues  
 
-This feature set provides a strong and interpretable baseline representation of external credit exposure for default prediction models.
+This compact feature set provides a robust representation of historical payment behavior without excessive dimensionality.
