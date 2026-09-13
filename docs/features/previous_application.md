@@ -197,17 +197,29 @@ Captures longest repayment commitment.
 
 ## 5.1 PREV_CREDIT_TO_APPLICATION_RATIO_MEAN
 
-**Formula:**  
-`CREDIT_TO_APPLICATION_RATIO = AMT_CREDIT / AMT_APPLICATION`
+**Formula:**
+
+CREDIT_TO_APPLICATION_RATIO = AMT_CREDIT / AMT_APPLICATION
 
 (Mean across previous applications.)
 
-**Interpretation:**  
-Measures how much of the requested amount was actually granted.
+**Definition:**
 
-**Risk intuition:**
-- Values < 1 → bank reduced requested amount  
-- Persistent reductions may indicate perceived risk  
+Average ratio between the final credit amount determined during the approval
+process and the credit amount initially requested by the client.
+
+**Interpretation:**
+
+Measures how the final credit amount compares with the amount initially requested.
+
+- Values < 1 → final credit amount was lower than initially requested
+- Values ≈ 1 → final credit amount was close to the initially requested amount
+- Values > 1 → final credit amount was higher than initially requested
+
+**Signal captured:**
+
+- Historical credit approval adjustments
+- Differences between requested and final credit amounts
 
 ---
 

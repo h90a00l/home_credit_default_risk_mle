@@ -14,7 +14,7 @@ python -m src.etl.feature_store \
 
 The output contains one row per `SK_ID_CURR`, retains `TARGET` when it exists
 in the application file, and fills missing feature values with zero. Use
-`--keep-missing` to preserve missing values.
+`--keep-missing` to preserve missing values. All feature analysis was performed keeping missing values.
 
 To build the test feature store:
 

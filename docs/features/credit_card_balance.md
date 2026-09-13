@@ -13,7 +13,7 @@ The focus is on credit utilization, payment behavior, default, activity level, a
 ## 1. CC_UTIL_MEAN
 
 **Definition:**  
-Average credit utilization ratio across all months.
+Average credit utilization ratio across all months (strong default sign with limited coverage).
 
 Calculated as:  
 AMT_BALANCE divided by AMT_CREDIT_LIMIT_ACTUAL
@@ -41,20 +41,23 @@ Captures the highest level of credit usage reached by the client.
 
 ---
 
-## 3. CC_PAYMENT_RATIO_MEAN
+## 3. CC_PAYMENT_TO_BALANCE_RATIO
 
 **Definition:**  
-Average ratio between payment amount and outstanding balance.
+Ratio between the total amount paid and the total outstanding balance observed across the customer's credit card history.
 
 Calculated as:  
-AMT_PAYMENT_TOTAL_CURRENT divided by AMT_BALANCE
+`SUM(AMT_PAYMENT_TOTAL_CURRENT) / SUM(AMT_BALANCE)`
 
 **Interpretation:**  
-Indicates how much of the outstanding balance the client pays on average.
+Indicates how much of the customer's observed outstanding balance is covered by payments over the available credit card history.
+
+Using the ratio of aggregated amounts instead of the average of monthly payment-to-balance ratios reduces sensitivity to months where `AMT_BALANCE` is close to zero, which can otherwise generate extreme ratio values.
 
 **Signal captured:**
 - Payment discipline  
 - Ability to reduce debt  
+- Capacity to cover outstanding balances  
 
 ---
 

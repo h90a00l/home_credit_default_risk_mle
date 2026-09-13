@@ -58,7 +58,7 @@ def build_credit_card_features(credit_card: pd.DataFrame) -> pd.DataFrame:
           SK_ID_CURR,
           CC_UTIL_MEAN,
           CC_UTIL_MAX,
-          CC_PAYMENT_RATIO_MEAN,
+          CC_PAYMENT_TO_BALANCE_RATIO,
           CC_LOW_PAYMENT_RATIO,
           CC_DPD_MEAN,
           CC_DPD_MAX,
@@ -87,8 +87,6 @@ def build_credit_card_features(credit_card: pd.DataFrame) -> pd.DataFrame:
     # Row-level variables
     # ------------------------------------------------------------------
     df["UTILIZATION"] = _safe_div(df["AMT_BALANCE"], df["AMT_CREDIT_LIMIT_ACTUAL"]).clip(lower=0)
-    df["PAYMENT_RATIO"] = _safe_div(df["AMT_PAYMENT_TOTAL_CURRENT"], df["AMT_BALANCE"]).clip(lower=0)
-
     df["IS_LOW_PAYMENT"] = (
         df["AMT_PAYMENT_TOTAL_CURRENT"] + EPS < df["AMT_BALANCE"]
     ).astype(int)
@@ -105,13 +103,28 @@ def build_credit_card_features(credit_card: pd.DataFrame) -> pd.DataFrame:
         .agg(
             CC_UTIL_MEAN=("UTILIZATION", "mean"),
             CC_UTIL_MAX=("UTILIZATION", "max"),
-            CC_PAYMENT_RATIO_MEAN=("PAYMENT_RATIO", "mean"),
+            CC_TOTAL_PAYMENT=("AMT_PAYMENT_TOTAL_CURRENT", "sum"),
+            CC_TOTAL_BALANCE=("AMT_BALANCE", "sum"),
             CC_LOW_PAYMENT_RATIO=("IS_LOW_PAYMENT", "mean"),
             CC_DPD_MEAN=("SK_DPD", "mean"),
             CC_DPD_MAX=("SK_DPD", "max"),
             CC_ACTIVE_RATIO=("IS_ACTIVE", "mean"),
             CC_DRAWINGS_MEAN=("AMT_DRAWINGS_CURRENT", "mean"),
         )
+    )
+
+    # ------------------------------------------------------------------
+    # Payment-to-balance ratio
+    # ------------------------------------------------------------------
+    # Use ratio of aggregated amounts instead of the mean of monthly ratios.
+    # This avoids extreme values caused by months with balances close to zero.
+    agg_core["CC_PAYMENT_TO_BALANCE_RATIO"] = _safe_div(
+        agg_core["CC_TOTAL_PAYMENT"],
+        agg_core["CC_TOTAL_BALANCE"],
+    ).clip(lower=0)
+
+    agg_core = agg_core.drop(
+        columns=["CC_TOTAL_PAYMENT", "CC_TOTAL_BALANCE"]
     )
 
     # ------------------------------------------------------------------
