@@ -4,6 +4,7 @@ pyarrow
 # ML
 scikit-learn==1.9.0
 imbalanced-learn==0.11.0
+mlflow==3.16.1
 # Plots
 matplotlib
 seaborn

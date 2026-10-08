@@ -2,6 +2,7 @@ from functools import reduce
 import pandas as pd
 import numpy as np
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 BUREAU_ID_COL = "SK_ID_BUREAU"
 MONTH_COL = "MONTHS_BALANCE"
@@ -14,7 +15,9 @@ def load_bureau_balance(path: str) -> pd.DataFrame:
 
 
 def build_bureau_balance_features(bureau_balance: pd.DataFrame) -> pd.DataFrame:
-    df = bureau_balance[[BUREAU_ID_COL, MONTH_COL, STATUS_COL]].copy()
+    df = historical_rows(
+        bureau_balance[[BUREAU_ID_COL, MONTH_COL, STATUS_COL]], [MONTH_COL]
+    )
 
     # Convert STATUS to numeric when possible (0–5 represent DPD levels)
     df["STATUS_NUMERIC"] = pd.to_numeric(df[STATUS_COL], errors="coerce")
@@ -22,11 +25,16 @@ def build_bureau_balance_features(bureau_balance: pd.DataFrame) -> pd.DataFrame:
     # Flag months with positive DPD
     df["HAS_POSITIVE_DPD_MONTH"] = (df["STATUS_NUMERIC"] > 0).astype("int8")
 
+    df["HAS_RECENT_DPD"] = (
+        df[MONTH_COL].between(-3, -1) & df["STATUS_NUMERIC"].gt(0)
+    ).astype("int8")
+
     # Core aggregation
     agg = (
         df.groupby(BUREAU_ID_COL)
         .agg(
             BUREAU_BALANCE_RECORD_COUNT=(MONTH_COL, "count"),
+            BUREAU_BALANCE_HAS_RECENT_DPD=("HAS_RECENT_DPD", "max"),
             BUREAU_BALANCE_OLDEST_MONTH=(MONTH_COL, "min"),
             BUREAU_BALANCE_MOST_RECENT_MONTH=(MONTH_COL, "max"),
             BUREAU_BALANCE_DPD_MAX=("STATUS_NUMERIC", "max"),

@@ -6,6 +6,10 @@ __pycache__/
 # ===== Virtual Environment =====
 venv/
 
+# ===== MLflow =====
+mlflow.db
+mlruns/
+
 # ===== Jupyter =====
 .ipynb_checkpoints/
 

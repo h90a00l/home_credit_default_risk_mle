@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 RECENT_WINDOW_MONTHS = 3
 EPS = 1e-9
@@ -81,7 +82,7 @@ def build_credit_card_features(credit_card: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
-    df = credit_card.copy()
+    df = historical_rows(credit_card, ["MONTHS_BALANCE"])
 
     # ------------------------------------------------------------------
     # Row-level variables
@@ -159,11 +160,15 @@ def build_credit_card_features(credit_card: pd.DataFrame) -> pd.DataFrame:
         y = sub["AMT_BALANCE"].to_numpy(dtype=float)
         return _slope(x, y)
 
-    trend = (
-        df.groupby("SK_ID_CURR")
-        .apply(_balance_trend)
-        .reset_index(name="CC_BALANCE_TREND")
-    )
+    if df.empty:
+        trend = agg_core[["SK_ID_CURR"]].copy()
+        trend["CC_BALANCE_TREND"] = pd.Series(dtype=float)
+    else:
+        trend = (
+            df.groupby("SK_ID_CURR")[["MONTHS_BALANCE", "AMT_BALANCE"]]
+            .apply(_balance_trend)
+            .reset_index(name="CC_BALANCE_TREND")
+        )
 
     # ------------------------------------------------------------------
     # Final output

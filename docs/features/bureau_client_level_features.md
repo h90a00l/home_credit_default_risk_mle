@@ -110,10 +110,12 @@ Gives more weight to longer contract histories and reduces noise from short hist
 Binary flag indicating recent DPD signal.
 
 **Contract-level rule:**  
-`has_recent_dpd = 1 if (BUREAU_DAYS_CREDIT_MOST_RECENT >= -3 and BUREAU_BALANCE_DPD_MAX > 0) else 0`
+`BUREAU_BALANCE_HAS_RECENT_DPD = any(STATUS_NUMERIC > 0 and -3 <= MONTHS_BALANCE <= -1)`
+
+Computed from raw monthly observations before aggregation by contract; the credit origination date is not used.
 
 **Client-level aggregation:**  
-`HAS_RECENT_DPD = max(has_recent_dpd)`
+`HAS_RECENT_DPD = max(BUREAU_BALANCE_HAS_RECENT_DPD)`
 
 **Interpretation:**  
 Indicates whether the client has at least one contract with recent DPD signal.

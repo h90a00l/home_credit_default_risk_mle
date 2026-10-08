@@ -31,6 +31,7 @@ from src.etl.previous_application import (
     load_previous_application,
 )
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 
 ID_COL = "SK_ID_CURR"
@@ -85,6 +86,7 @@ def build_bureau_balance_client_features(
         "bureau",
     )
 
+    bureau = historical_rows(bureau, ["DAYS_CREDIT", "DAYS_CREDIT_UPDATE"])
     balance_features = build_bureau_balance_features(bureau_balance)
 
     # bureau_balance is loan-level and does not contain SK_ID_CURR.  The bureau

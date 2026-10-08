@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 RECENT_WINDOW_DAYS = 90
 EPS = 1e-9
@@ -61,7 +62,10 @@ def build_installments_features(installments: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
-    df = installments.copy()
+    # These features describe observed payments only. Unknown payment dates
+    # cannot establish availability; unpaid exposure needs separate features.
+    df = historical_rows(installments, ["DAYS_ENTRY_PAYMENT"])
+    df["DAYS_INSTALMENT"] = pd.to_numeric(df["DAYS_INSTALMENT"], errors="coerce")
 
     # --- Row-level signals ---
     # DPD (days past due): positive only
@@ -74,7 +78,7 @@ def build_installments_features(installments: pd.DataFrame) -> pd.DataFrame:
     df["IS_LOW_PAYMENT"] = (df["AMT_PAYMENT"] + EPS < df["AMT_INSTALMENT"]).astype(int)
 
     # Recent window (last 90 days in the dataset timeline, closer to 0 is more recent)
-    df["IS_RECENT_90D"] = (df["DAYS_INSTALMENT"] >= -RECENT_WINDOW_DAYS).astype(int)
+    df["IS_RECENT_90D"] = (df["DAYS_INSTALMENT"].between(-RECENT_WINDOW_DAYS, -1)).astype(int)
 
     # --- Aggregations by customer ---
     g = df.groupby("SK_ID_CURR", as_index=False)
@@ -114,12 +118,15 @@ def build_installments_features(installments: pd.DataFrame) -> pd.DataFrame:
         y = sub["DPD"].to_numpy(dtype=float)
         return _slope(x, y)
 
-    trend = (
-        df.groupby("SK_ID_CURR", as_index=False)
-          .apply(_dpd_trend)
-          .reset_index()
-          .rename(columns={0: "INST_DPD_TREND"})
-    )
+    if df.empty:
+        trend = agg_core[["SK_ID_CURR"]].copy()
+        trend["INST_DPD_TREND"] = pd.Series(dtype=float)
+    else:
+        trend = (
+            df.groupby("SK_ID_CURR")[["DAYS_INSTALMENT", "DPD"]]
+              .apply(_dpd_trend)
+              .reset_index(name="INST_DPD_TREND")
+        )
 
     # --- Final dataset ---
     out = (

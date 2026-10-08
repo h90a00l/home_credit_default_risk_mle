@@ -134,12 +134,14 @@ Measures frequency of behavior considered problematic by internal standards.
 ## 3.3 POS_RECENT_1Y_DPD_RATIO
 
 Definition:  
-Proportion of months with DPD greater than zero in the last 12 months.
+Proportion of contract-month records with DPD greater than zero in the last 12 completed months.
 
-Criteria: MONTHS_BALANCE > -365
+Criteria: -12 <= MONTHS_BALANCE <= -1
 
 Formula:
-POS_RECENT_1Y_DPD_RATIO = Recent_1Y_Months_with_DPD / POS_RECORD_COUNT
+POS_RECENT_1Y_DPD_RATIO = Recent_1Y_Records_with_DPD / Recent_1Y_Record_Count
+
+Returns zero when there are no records in the window.
 
 Interpretation:  
 Captures recent payment behavior.

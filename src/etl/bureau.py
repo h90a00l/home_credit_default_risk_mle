@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 
 ID_COL = "SK_ID_CURR"
@@ -31,7 +32,7 @@ def _safe_divide(num: pd.Series, den: pd.Series) -> pd.Series:
 
 
 def build_bureau_features(bureau: pd.DataFrame) -> pd.DataFrame:
-    b = bureau.copy()
+    b = historical_rows(bureau, [DAYS_CREDIT_COL, "DAYS_CREDIT_UPDATE"])
 
     # Ensure numeric
     for col in [DEBT_COL, CREDIT_SUM_COL, MAX_OVERDUE_COL, DAYS_CREDIT_COL]:

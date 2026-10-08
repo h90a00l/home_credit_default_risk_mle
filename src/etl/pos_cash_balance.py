@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 
 ID_COL = "SK_ID_CURR"
@@ -16,7 +17,7 @@ CNT_INSTALMENT_FUTURE_COL = "CNT_INSTALMENT_FUTURE"
 
 STATUS_COL = "NAME_CONTRACT_STATUS"
 
-RECENT_THRESHOLD = -365  # last 12 months
+RECENT_THRESHOLD = -12  # last 12 months
 
 
 def load_pos_cash(path: str) -> pd.DataFrame:
@@ -37,7 +38,9 @@ def build_pos_cash_features(pos: pd.DataFrame) -> pd.DataFrame:
         STATUS_COL
     ]
 
-    df = pos[[c for c in cols if c in pos.columns]].copy()
+    df = historical_rows(
+        pos[[c for c in cols if c in pos.columns]], [MONTH_COL]
+    )
 
     # Numeric coercion
     for col in [DPD_COL, DPD_DEF_COL, CNT_INSTALMENT_COL, CNT_INSTALMENT_FUTURE_COL, MONTH_COL]:
@@ -47,7 +50,7 @@ def build_pos_cash_features(pos: pd.DataFrame) -> pd.DataFrame:
     # Flags
     df["__has_dpd"] = (df[DPD_COL] > 0).astype("int8")
     df["__has_dpd_def"] = (df[DPD_DEF_COL] > 0).astype("int8")
-    df["__is_recent_1y"] = (df[MONTH_COL] > RECENT_THRESHOLD).astype("int8")
+    df["__is_recent_1y"] = (df[MONTH_COL].between(RECENT_THRESHOLD, -1)).astype("int8")
 
     # Installment progress
     df["__installment_progress"] = _safe_divide(
@@ -60,6 +63,7 @@ def build_pos_cash_features(pos: pd.DataFrame) -> pd.DataFrame:
         df.groupby(ID_COL)
         .agg(
             POS_RECORD_COUNT=(MONTH_COL, "count"),
+            POS_RECENT_1Y_RECORD_COUNT=("__is_recent_1y", "sum"),
 
             POS_MONTHS_OLDEST=(MONTH_COL, "min"),
             POS_MONTHS_MOST_RECENT=(MONTH_COL, "max"),
@@ -96,7 +100,7 @@ def build_pos_cash_features(pos: pd.DataFrame) -> pd.DataFrame:
 
     agg["POS_RECENT_1Y_DPD_RATIO"] = _safe_divide(
         agg["POS_RECENT_1Y_DPD_COUNT"],
-        agg["POS_RECORD_COUNT"]
+        agg["POS_RECENT_1Y_RECORD_COUNT"]
     )
 
     agg["POS_HAS_DPD_FLAG"] = (agg["POS_DPD_MAX"] > 0).astype("int8")
@@ -105,7 +109,8 @@ def build_pos_cash_features(pos: pd.DataFrame) -> pd.DataFrame:
     agg = agg.drop(columns=[
         "POS_DPD_MONTH_COUNT",
         "POS_DPD_DEF_MONTH_COUNT",
-        "POS_RECENT_1Y_DPD_COUNT"
+        "POS_RECENT_1Y_DPD_COUNT",
+        "POS_RECENT_1Y_RECORD_COUNT"
     ])
 
     return reduce_memory_usage(agg.fillna(0))

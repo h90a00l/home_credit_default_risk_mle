@@ -54,19 +54,12 @@ def build_client_level_bureau_features(df: pd.DataFrame) -> pd.DataFrame:
         ["SK_ID_CURR", "BUREAU_BALANCE_DPD_RATIO_WEIGHTED_MEAN"]
     ]
 
-    # Recent DPD flag (past 3 months)
+    # Recency must be computed from monthly observations, before loan aggregation.
     recent_dpd = (
-        df.assign(
-            has_recent_dpd=lambda x:
-                np.where(
-                    (x["BUREAU_DAYS_CREDIT_MOST_RECENT"] >= -3) &
-                    (x["BUREAU_BALANCE_DPD_MAX"] > 0),
-                    1,
-                    0
-                )
-        )
-        .groupby("SK_ID_CURR")
-        .agg(HAS_RECENT_DPD=("has_recent_dpd", "max"))
+        df.groupby("SK_ID_CURR")["BUREAU_BALANCE_HAS_RECENT_DPD"]
+        .max()
+        .fillna(0)
+        .rename("HAS_RECENT_DPD")
         .reset_index()
     )
 
@@ -95,6 +88,7 @@ if __name__ == "__main__":
                        100003],
         "SK_ID_BUREAU": [1, 2, 3, 4, 5, 6],
         "BUREAU_BALANCE_DPD_MAX": [0, 1, 0, 2, 0, 0],
+        "BUREAU_BALANCE_HAS_RECENT_DPD": [0, 1, 0, 0, 0, 0],
         "BUREAU_BALANCE_DPD_RATIO": [0.0, 0.02, 0.0, 0.10, 0.0, 0.0],
         "BUREAU_BALANCE_HAS_POSITIVE_DPD": [0, 1, 0, 1, 0, 0],
         "BUREAU_BALANCE_MONTH_SPAN": [12, 52, 24, 36, 18, 60],

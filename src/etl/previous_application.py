@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from src.utils.memory_optimization import reduce_memory_usage
+from src.etl.temporal import historical_rows
 
 
 ID_COL = "SK_ID_CURR"
@@ -39,7 +40,9 @@ def build_previous_application_features(prev: pd.DataFrame) -> pd.DataFrame:
         AMT_APPLICATION_COL, AMT_CREDIT_COL, AMT_ANNUITY_COL,
         AMT_DOWN_PAYMENT_COL, CNT_PAYMENT_COL
     ]
-    df = prev[[c for c in cols if c in prev.columns]].copy()
+    df = historical_rows(
+        prev[[c for c in cols if c in prev.columns]], [DAYS_DECISION_COL]
+    )
 
     # Numeric coercion
     for col in [
